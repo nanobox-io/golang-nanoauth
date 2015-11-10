@@ -9,12 +9,22 @@ import (
 type handler struct {
 	child http.Handler
 	token string
+	excludedPaths []string
 }
 
 // Implement the http.Handler interface. Also let clients know when I have 
 // no matching route listeners
 func (self handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if req.Header.Get("X-NANOBOX-TOKEN") != self.token {
+	reqPath := req.URL.Path
+	check := true
+	for _, path := range self.excludedPaths {
+		if path == reqPath {
+			check = false
+			break
+		}
+	}
+
+	if check && req.Header.Get("X-NANOBOX-TOKEN") != self.token {
 		rw.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -23,7 +33,7 @@ func (self handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	self.child.ServeHTTP(rw, req)
 }
 
-func ListenAndServeTLS(addr, token string, h http.Handler) error {
+func ListenAndServeTLS(addr, token string, h http.Handler, excludedPaths ...string) error {
 	cert, err := Generate()
 	if err != nil {
 		return err
@@ -37,5 +47,5 @@ func ListenAndServeTLS(addr, token string, h http.Handler) error {
 		return err
 	}
 
-	return http.Serve(tlsListener, handler{child: h, token: token})
+	return http.Serve(tlsListener, handler{child: h, token: token, excludedPaths: excludedPaths})
 }
