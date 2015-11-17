@@ -28,7 +28,6 @@ func (self handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	req.Header.Del("X-NANOBOX-TOKEN")
 
 	self.child.ServeHTTP(rw, req)
 }
