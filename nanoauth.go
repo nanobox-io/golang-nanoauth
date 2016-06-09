@@ -1,18 +1,25 @@
+// Package nanoauth provides a uniform means of serving HTTP/S for golang
+// projects securely. It allows the specification of a certificate (or
+// generates one) as well as an auth token which is checked before the request
+// is processed.
 package nanoauth
 
 import (
 	"crypto/tls"
+	"net"
 	"net/http"
 )
 
+// Auth is a structure containing listener information
 type Auth struct {
-	child         http.Handler
-	Header        string
-	Certificate   *tls.Certificate
-	ExcludedPaths []string
-	Token         string
+	child         http.Handler     // child is the http handler passed in
+	Header        string           // Header is the authentication token's header name
+	Certificate   *tls.Certificate // Certificate is the tls.Certificate to serve requests with
+	ExcludedPaths []string         // ExcludedPaths is a list of paths to be excluded from being served
+	Token         string           // Token is the security/authentication string to validate by
 }
 
+// DefaultAuth is the default Auth object
 var DefaultAuth = &Auth{}
 
 func init() {
@@ -20,8 +27,8 @@ func init() {
 	DefaultAuth.Certificate, _ = Generate("nanobox.io")
 }
 
-// Implement the http.Handler interface. Also let clients know when I have
-// no matching route listeners
+// ServeHTTP is to implement the http.Handler interface. Also let clients know
+// when I have no matching route listeners
 func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	reqPath := req.URL.Path
 	check := true
@@ -40,6 +47,7 @@ func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	self.child.ServeHTTP(rw, req)
 }
 
+// ListenAndServeTLS starts a TLS listener and handles serving https
 func (self *Auth) ListenAndServeTLS(addr, token string, h http.Handler, excludedPaths ...string) error {
 	config := &tls.Config{
 		Certificates: []tls.Certificate{*self.Certificate},
@@ -51,12 +59,39 @@ func (self *Auth) ListenAndServeTLS(addr, token string, h http.Handler, excluded
 	}
 	self.ExcludedPaths = excludedPaths
 	self.Token = token
+
+	if h == nil {
+		h = http.DefaultServeMux
+	}
 	self.child = h
 
 	return http.Serve(tlsListener, self)
 }
 
-// ListenAndServeTLS quick function to get to the default one
+// ListenAndServe starts a normal tcp listener and handles serving http while
+// still validating the auth token.
+func (self *Auth) ListenAndServe(addr, token string, h http.Handler, excludedPaths ...string) error {
+	httpListener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	self.ExcludedPaths = excludedPaths
+	self.Token = token
+
+	if h == nil {
+		h = http.DefaultServeMux
+	}
+	self.child = h
+
+	return http.Serve(httpListener, self)
+}
+
+// ListenAndServeTLS is a shortcut function which uses the default one
 func ListenAndServeTLS(addr, token string, h http.Handler, excludedPaths ...string) error {
 	return DefaultAuth.ListenAndServeTLS(addr, token, h, excludedPaths...)
+}
+
+// ListenAndServe is a shortcut function which uses the default one
+func ListenAndServe(addr, token string, h http.Handler, excludedPaths ...string) error {
+	return DefaultAuth.ListenAndServe(addr, token, h, excludedPaths...)
 }

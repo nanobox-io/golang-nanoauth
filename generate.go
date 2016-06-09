@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// Generate is a helper function which generates a tls.Certificate for serving
+// TLS requests.
 func Generate(host string) (*tls.Certificate, error) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
