@@ -11,25 +11,26 @@ Nanoauth provides a uniform means of serving HTTP/S for golang projects securely
 Import and serve
 >main.go
 >```go
-package main
+>package main
+>
+>import (
+>	"net/http"
+>	"fmt"
+>	"io"
+>
+>	"github.com/nanobox-io/golang-nanoauth"
+>)
+>
+>func main() {>
+>  http.HandleFunc("/", func(rw http.ResponseWriter, req *http.>Request) {
+>    io.WriteString(rw, "World, Hello!\n")
+>  })
+>
+>	fmt.Printf("Stopped serving! - %v\n",
+>		nanoauth.ListenAndServe("127.0.0.1:8081", "$ECRET", nil))
+>}
+>```
 
-import (
-	"net/http"
-	"fmt"
-	"io"
-
-	"github.com/nanobox-io/golang-nanoauth"
-)
-
-func main() {
-  http.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
-    io.WriteString(rw, "World, Hello!\n")
-  })
-
-	fmt.Printf("Stopped serving! - %v\n",
-		nanoauth.ListenAndServe("127.0.0.1:8081", "$ECRET", nil))
-}
-```
 Test
 ```sh
 $ curl localhost:8081 -i
