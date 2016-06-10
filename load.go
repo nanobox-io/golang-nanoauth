@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 )
 
+// Load is a helper function to load a certificate and key from password protected files.
 func Load(certFile, keyFile, password string) (*tls.Certificate, error) {
 	certPEMBlock, err := ioutil.ReadFile(certFile)
 	if err != nil {
