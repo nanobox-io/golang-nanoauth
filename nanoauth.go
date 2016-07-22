@@ -15,12 +15,17 @@ type Auth struct {
 	child         http.Handler     // child is the http handler passed in
 	Header        string           // Header is the authentication token's header name
 	Certificate   *tls.Certificate // Certificate is the tls.Certificate to serve requests with
-	ExcludedPaths []string         // ExcludedPaths is a list of paths to be excluded from being served
+	ExcludedPaths []string         // ExcludedPaths is a list of paths to be excluded from being authenticated
 	Token         string           // Token is the security/authentication string to validate by
 }
 
-// DefaultAuth is the default Auth object
-var DefaultAuth = &Auth{}
+var (
+	// DefaultAuth is the default Auth object
+	DefaultAuth = &Auth{}
+
+	// whether or not to check auth tokens
+	check = true
+)
 
 func init() {
 	DefaultAuth.Header = "X-NANOBOX-TOKEN"
@@ -31,7 +36,7 @@ func init() {
 // when I have no matching route listeners
 func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	reqPath := req.URL.Path
-	check := true
+
 	for _, path := range self.ExcludedPaths {
 		if path == reqPath {
 			check = false
@@ -39,15 +44,17 @@ func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	auth := ""
-	if auth = req.Header.Get(self.Header); auth == "" {
-		// check form value (case sensitive) if header not set
-		auth = req.FormValue(self.Header)
-	}
+	if check {
+		auth := ""
+		if auth = req.Header.Get(self.Header); auth == "" {
+			// check form value (case sensitive) if header not set
+			auth = req.FormValue(self.Header)
+		}
 
-	if check && auth != self.Token {
-		rw.WriteHeader(http.StatusUnauthorized)
-		return
+		if auth != self.Token {
+			rw.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 	}
 
 	self.child.ServeHTTP(rw, req)
@@ -62,6 +69,10 @@ func (self *Auth) ListenAndServeTLS(addr, token string, h http.Handler, excluded
 	tlsListener, err := tls.Listen("tcp", addr, config)
 	if err != nil {
 		return err
+	}
+
+	if token == "" {
+		check = false
 	}
 	self.ExcludedPaths = excludedPaths
 	self.Token = token
@@ -80,6 +91,10 @@ func (self *Auth) ListenAndServe(addr, token string, h http.Handler, excludedPat
 	httpListener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
+	}
+
+	if token == "" {
+		check = false
 	}
 	self.ExcludedPaths = excludedPaths
 	self.Token = token
