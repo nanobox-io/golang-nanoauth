@@ -39,7 +39,13 @@ func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if check && req.Header.Get(self.Header) != self.Token {
+	auth := ""
+	if auth = req.Header.Get(self.Header); auth == "" {
+		// check form value (case sensitive) if header not set
+		auth = req.FormValue(self.Header)
+	}
+
+	if check && auth != self.Token {
 		rw.WriteHeader(http.StatusUnauthorized)
 		return
 	}
