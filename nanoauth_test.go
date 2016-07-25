@@ -55,12 +55,11 @@ func TestListenServe(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// test good request
-	req, err := newReq(address1, "/")
+	req, err := newReq(address1, "/?X-NANOBOX-TOKEN=$ECRET")
 	if err != nil {
 		t.Errorf("Failed to create request - %v", err)
 		t.FailNow()
 	}
-	req.Header.Add("X-NANOBOX-TOKEN", "$ECRET")
 	req.Host = "nanobox-router.test"
 
 	resp, err := getIt(req)
