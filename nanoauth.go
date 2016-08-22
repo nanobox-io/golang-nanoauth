@@ -44,6 +44,12 @@ func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	// open up for the CORS "secure" pre-flight check (browser doesn't allow devs to set headers in OPTIONS request)
+	if req.Method == "OPTIONS" {
+		// todo: actually check origin header to better implement CORS
+		check = false
+	}
+
 	if check {
 		auth := ""
 		if auth = req.Header.Get(self.Header); auth == "" {
