@@ -36,10 +36,11 @@ func init() {
 // when I have no matching route listeners
 func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	reqPath := req.URL.Path
+	skipOnce := false
 
 	for _, path := range self.ExcludedPaths {
 		if path == reqPath {
-			check = false
+			skipOnce = true
 			break
 		}
 	}
@@ -47,10 +48,10 @@ func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// open up for the CORS "secure" pre-flight check (browser doesn't allow devs to set headers in OPTIONS request)
 	if req.Method == "OPTIONS" {
 		// todo: actually check origin header to better implement CORS
-		check = false
+		skipOnce = true
 	}
 
-	if check {
+	if !skipOnce && check {
 		auth := ""
 		if auth = req.Header.Get(self.Header); auth == "" {
 			// check form value (case sensitive) if header not set
