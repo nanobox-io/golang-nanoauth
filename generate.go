@@ -30,9 +30,11 @@ func Generate(host string) (*tls.Certificate, error) {
 	}
 
 	template := x509.Certificate{
+		DNSNames:     []string{host},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Acme Co"},
+			CommonName:   host,
+			Organization: []string{"Nanobox Acme Co"},
 		},
 		NotBefore: notBefore,
 		NotAfter:  notAfter,
@@ -41,8 +43,6 @@ func Generate(host string) (*tls.Certificate, error) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
-
-	template.DNSNames = append(template.DNSNames, host)
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
