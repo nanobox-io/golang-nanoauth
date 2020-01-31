@@ -5,6 +5,7 @@
 package nanoauth
 
 import (
+	"crypto/subtle"
 	"crypto/tls"
 	"errors"
 	"net"
@@ -56,7 +57,7 @@ func (self *Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			auth = req.FormValue(self.Header)
 		}
 
-		if auth != self.Token {
+		if subtle.ConstantTimeCompare([]byte(auth), []byte(self.Token)) == 0 {
 			rw.WriteHeader(http.StatusUnauthorized)
 			return
 		}
