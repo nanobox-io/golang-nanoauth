@@ -6,6 +6,7 @@ package nanoauth
 
 import (
 	"crypto/tls"
+	"errors"
 	"net"
 	"net/http"
 )
@@ -22,9 +23,6 @@ type Auth struct {
 var (
 	// DefaultAuth is the default Auth object
 	DefaultAuth = &Auth{}
-
-	// whether or not to check auth tokens
-	check = true
 )
 
 func init() {
@@ -34,7 +32,7 @@ func init() {
 
 // ServeHTTP is to implement the http.Handler interface. Also let clients know
 // when I have no matching route listeners
-func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (self *Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	reqPath := req.URL.Path
 	skipOnce := false
 
@@ -51,7 +49,7 @@ func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		skipOnce = true
 	}
 
-	if !skipOnce && check {
+	if !skipOnce {
 		auth := ""
 		if auth = req.Header.Get(self.Header); auth == "" {
 			// check form value (case sensitive) if header not set
@@ -69,6 +67,9 @@ func (self Auth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // ListenAndServeTLS starts a TLS listener and handles serving https
 func (self *Auth) ListenAndServeTLS(addr, token string, h http.Handler, excludedPaths ...string) error {
+	if token == "" {
+		return errors.New("nanoauth: token missing")
+	}
 	config := &tls.Config{
 		Certificates: []tls.Certificate{*self.Certificate},
 	}
@@ -78,9 +79,6 @@ func (self *Auth) ListenAndServeTLS(addr, token string, h http.Handler, excluded
 		return err
 	}
 
-	if token == "" {
-		check = false
-	}
 	self.ExcludedPaths = excludedPaths
 	self.Token = token
 
@@ -95,14 +93,14 @@ func (self *Auth) ListenAndServeTLS(addr, token string, h http.Handler, excluded
 // ListenAndServe starts a normal tcp listener and handles serving http while
 // still validating the auth token.
 func (self *Auth) ListenAndServe(addr, token string, h http.Handler, excludedPaths ...string) error {
+	if token == "" {
+		return errors.New("nanoauth: token missing")
+	}
 	httpListener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
 
-	if token == "" {
-		check = false
-	}
 	self.ExcludedPaths = excludedPaths
 	self.Token = token
 
